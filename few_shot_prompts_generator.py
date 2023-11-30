@@ -16,41 +16,68 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.memory import ConversationSummaryBufferMemory
 from huggingface_hub import login
 
-def _build_hf_pipe(modelName='databricks/dolly-v2-7b'):
-  instructPipeline = pipeline(model=modelName, torch_dtype=torch.bfloat16, trust_remote_code=True, device_map="auto", 
-                            return_full_text=True, max_new_tokens=256, top_p=0.95, top_k=50)
-  return HuggingFacePipeline(pipeline=instructPipeline)
+class FewShotsGenerator:
+  def __init__(self, modelName='meta-llama/Llama-2-7b-chat-hf'):
+    torch.cuda.empty_cache()
+    self.hfPipe = self._build_hf_pipe(modelName=modelName)
 
-def _ask_for_shots(input,output,context,num_shots,hfPipe):
-  torch.cuda.empty_cache()
-  template = """
-  Example input -> output pair:
-  {input} -> {output}
+  def _build_hf_pipe(self, modelName):
+    instructPipeline = pipeline(model=modelName, torch_dtype=torch.bfloat16, trust_remote_code=True, device_map="auto", 
+                              return_full_text=True, max_new_tokens=256, top_p=0.95, top_k=50)
+    return HuggingFacePipeline(pipeline=instructPipeline)
 
-  Context:
-  {context}
+  def _ask_for_shots(self,):
+    template = """
+    Example input -> output pair:
+    {input} -> {output}
 
-  Your response is to create {num_shots} OTHER similar input -> output pairs.
-  You will also be given a context and all your input and output must relevant within this context.
+    Context:
+    {context}
 
-  Response:
-  """
-  prompt = PromptTemplate(input_variables=['context', 'input', 'output', 'num_shots'], template=template)
+    Your response is to create {num_shots} OTHER similar input -> output pairs.
+    You will also be given a context and all your input and output must relevant within this context.
 
-  return hfPipe(prompt.format(input=input,output=output,context=context, num_shots=num_shots))
+    Response:
+    """
+    prompt = PromptTemplate(input_variables=[ 'input', 'output','context','num_shots'], template=template)
+    self.instruction2Llm = prompt.format(input=self.exampleInput,output=self.exampleOutput,context=self.context, num_shots=self.num_shots)
+    return self.hfPipe(self.instruction2Llm)
 
-def _extract_shots(promptFromLlm):
-  pattern = '([\d]+\. )(.*?)(?=(\n)|($))'
-  extracted_shots = re.findall(pattern, promptFromLlm)
-  return [group[1] for group in extracted_shots]
+  def _extract_shots(self,):
+    pattern = '([\d]+\. )(.*?)(?=(\n)|($))'
+    extractedShots = re.findall(pattern, self.promptFromLlm)
+    return [group[1] for group in extractedShots]
+  
+  def _format_draft_prompt(self,):
+    if len(self.extractedShots) == 0:
+      return 'Unable to derive more shots. Please revise your example'
+    
+    numberedShots = ['{}. {}\n'.format(i+1,shot) for i, shot in enumerate(self.extractedShots)]
+    userExample = '0. {} -> {}\n'.format(self.exampleInput, self.exampleOutput)
+    numberedShots.insert(0,userExample)
+    numberedShots = "".join([item for item in numberedShots])
+    template = f"""
+    Based on the following examples:
+    {numberedShots}
 
+    Complete the relationship below:
+    replace_this_with_your_input ->
+    """
+    return template
 
-def generate_few_shots(exampleInput: str, exampleOutput: str, context: str, num_shots: int):
-    modelName = "meta-llama/Llama-2-7b-chat-hf"
-    hfPipe = _build_hf_pipe(modelName=modelName)
-    promptFromLlm = _ask_for_shots(input=exampleInput, output=exampleOutput, context=context, num_shots=num_shots, hfPipe=hfPipe)
-    return _extract_shots(promptFromLlm)
+  def generate_few_shots(self, exampleInput, exampleOutput, context, num_shots):
+    self.exampleInput = exampleInput
+    self.exampleOutput = exampleOutput
+    self.context = context
+    self.num_shots = num_shots
+    torch.cuda.empty_cache()
+    self.promptFromLlm = self._ask_for_shots()
+    self.extractedShots = self._extract_shots()
+    return self._format_draft_prompt()
 
+# COMMAND ----------
+
+fewShotsGenerator = FewShotsGenerator()
 
 # COMMAND ----------
 
@@ -59,10 +86,8 @@ output = '4'
 context = 'Math'
 num_shots = 5
 
-extracted_shots = generate_few_shots(input,output,context,num_shots)
-print('\nExtracted:')
-for i in extracted_shots:
-    print(i)
+promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
+print(promptTemplate)
 
 # COMMAND ----------
 
@@ -71,10 +96,8 @@ output = 'Yellow'
 context = 'Fruits'
 num_shots = 7
 
-extracted_shots = generate_few_shots(input,output,context,num_shots)
-print('\nExtracted:')
-for i in extracted_shots:
-    print(i)
+promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
+print(promptTemplate)
 
 # COMMAND ----------
 
@@ -83,10 +106,8 @@ output = 'Office'
 context = 'Furniture'
 num_shots = 3
 
-extracted_shots = generate_few_shots(input,output,context,num_shots)
-print('\nExtracted:')
-for i in extracted_shots:
-    print(i)
+promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
+print(promptTemplate)
 
 # COMMAND ----------
 
@@ -95,7 +116,5 @@ output = 'Positive'
 context = 'Sentiment'
 num_shots = 4
 
-extracted_shots = generate_few_shots(input,output,context,num_shots)
-print('\nExtracted:')
-for i in extracted_shots:
-    print(i)
+promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
+print(promptTemplate)
