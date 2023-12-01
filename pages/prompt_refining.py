@@ -1,8 +1,6 @@
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.stylable_container import stylable_container
-from few_shot_prompts_generator import FewShotsGenerator
-import subprocess
 
 # Remove the pages from streamlit sidebar
 st.markdown("<style> ul {display: none;} </style>", unsafe_allow_html=True)
@@ -30,18 +28,13 @@ with st.sidebar:
 # Layout the page as two columns
 selections, space_col, initial_inputs = st.columns([1.2, 0.2, 2])
 
-# Initialize class required
-if st.session_state.prompt_type == "Shot prompting":
-    subprocess.call(['sh', './hugging_face.sh'])
-    fewShotsGenerator = FewShotsGenerator()
-
 # Define functions to be used in the chat
 def call_API(prompt_type):
     # Call API to get the output
     with initial_inputs:
         with st.spinner('AI is thinking...'):
             if prompt_type == "Shot prompting":
-                promptTemplate = fewShotsGenerator.generate_few_shots(exampleInput=st.session_state.shot_question, exampleOutput=st.session_state.shot_reply, context=st.session_state.prompt_context, num_shots=st.session_state.num_shots)
+                promptTemplate='Testing123'
     st.session_state.latest_output = {"role": "AI", "content": promptTemplate}
     st.session_state.chat_history.append(st.session_state.latest_output)
 
