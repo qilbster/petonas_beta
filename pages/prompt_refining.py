@@ -32,9 +32,10 @@ selections, space_col, initial_inputs = st.columns([1.2, 0.2, 2])
 # Define functions to be used in the chat
 def call_API(prompt_type):
     # Call API to get the output
-    with st.spinner('AI is thinking...'):
-        st.write("Calling " + prompt_type + " API...")
-        time.sleep(3)
+    with initial_inputs:
+        with st.spinner('AI is thinking...'):
+            st.write("Calling " + prompt_type + " API...")
+            time.sleep(3)
     st.session_state.latest_output = {"role": "AI", "content": "I'm a bot, not a human"}
     st.session_state.chat_history.append(st.session_state.latest_output)
 
@@ -62,4 +63,3 @@ with initial_inputs:
 
 with selections:
     final_output = st.text_area(value=st.session_state.latest_output['content'],label="Engineering prompt returned by the AI",label_visibility='hidden', height=300)
-    
