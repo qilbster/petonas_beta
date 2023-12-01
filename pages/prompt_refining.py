@@ -1,64 +1,53 @@
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
-from streamlit_extras.stylable_container import stylable_container
+from app_functions.shared_function import page_format, get_default_value
+from pages.shot_prompting import shot_prompt_inputs
+from app_functions.databricks_api import call_api
+from time import sleep
 
-# Remove the pages from streamlit sidebar
-st.markdown("<style> ul {display: none;} </style>", unsafe_allow_html=True)
+user_inputs, space_col, ai_area = page_format([2, 0.4, 2])
 
-with st.sidebar:
-    if st.button("Back"): 
-        if st.session_state['prompt_page'] == "focused_summary":
-            switch_page('focused_summary')
-        elif st.session_state['prompt_page'] == "shot_prompting":
-            switch_page('shot_prompting')
-    st.subheader("Inputs to prompt generator:")
-    display_inputs = st.session_state['final_input'].replace('\n', '<br>')
-    
-    # Create a container with a black border and a grey background.
-    with stylable_container(key="container_with_border",
-                            css_styles="""
-                            {
-                            border: 1px solid rgba(49, 51, 63, 0.2); 
-                            padding: calc(1em - 12px); 
-                            border-radius: 0.5rem;
-                            }
-                            """):
+def get_output(prompt_type):
+    if prompt_type == "Shot prompting":
+        job_id = 914650064561932
+        input_params = {"input":st.session_state['shot_question'], "output":st.session_state['shot_reply'], "context":st.session_state['prompt_context'], "num_shots":st.session_state['num_shots']}
+    return call_api(job_id, input_params)
+
+with user_inputs:
+    prompt_context = st.text_input('Please enter the context for your prompt:', get_default_value('prompt_context', ''))
+    if st.session_state['prompt_type'] == 'Shot prompting':
+        _, inputs_to_save = shot_prompt_inputs('edit')
+    inputs_to_save["prompt_context"] = prompt_context
+    subcol1, subcol2, subcol3, subcol4, subcol5, subcol6, subcol7 = st.columns(7)
+    complete_edit = subcol7.button('Done', key='editbutton')
+    if complete_edit:
+        # Check if all inputs are filled
+        if not all(inputs_to_save.values()):
+            st.error("Please fill in all inputs.")
+        else:
+            for input in inputs_to_save.keys():
+                st.session_state[input] = inputs_to_save[input]
+            with ai_area:
+                with st.spinner("AI is still thinking..."):
+                    st.session_state['ai_output'] = get_output(st.session_state['prompt_type'])
+
+if not st.session_state.get('ai_output'):
+    with ai_area:
+        display_inputs = st.session_state['final_input'].replace('\n', '<br>')
         st.markdown(display_inputs, unsafe_allow_html=True)
-
-# Layout the page as two columns
-selections, space_col, initial_inputs = st.columns([1.2, 0.2, 2])
-
-# Define functions to be used in the chat
-def call_API(prompt_type):
-    # Call API to get the output
-    with initial_inputs:
-        with st.spinner('AI is thinking...'):
-            if prompt_type == "Shot prompting":
-                promptTemplate='Testing123'
-    st.session_state.latest_output = {"role": "AI", "content": promptTemplate}
-    st.session_state.chat_history.append(st.session_state.latest_output)
-
-def on_input_change():
-    user_input = st.session_state.user_input
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
-    call_API(st.session_state.prompt_type)
-
-def on_btn_click():
-    del st.session_state.chat_history[1:]
-
-st.session_state.setdefault('chat_history', [{'role':'user','content':st.session_state['final_input']}])
-
-with initial_inputs:
-    for message in st.session_state.chat_history:
-        with st.chat_message(message['role']):
-            st.text(message['content'])
-    if len(st.session_state.chat_history) == 1:
-        call_API(st.session_state.prompt_type)
-        with st.chat_message("AI"):
-            st.text("I'm a bot, not a human")
-    subcol1, subcol2, subcol3, subcol5 = st.columns(4)
-    subcol5.button("Clear message", on_click=on_btn_click)
-    st.text_input("User Input:", on_change=on_input_change, key="user_input")
-
-with selections:
-    final_output = st.text_area(value=st.session_state.latest_output['content'],label="Engineering prompt returned by the AI",label_visibility='hidden', height=300)
+        col1, col2, col3 = st.columns(3)
+        start_button = col3.button("Generate the prompt")
+        if start_button:
+            with st.spinner("AI is still thinking..."):
+                st.session_state['ai_output'] = get_output(st.session_state['prompt_type'])
+                st.rerun()
+else:
+    with ai_area:
+        output_area = st.empty()
+        with output_area.container():
+            st.text_area(value=st.session_state['ai_output'],label="ai_output",label_visibility='hidden', height=300)
+            col1, col2, col3 = st.columns(3)
+            prompt_done = col3.button("I'm happy with the prompt 🥳")
+        if prompt_done:
+            with output_area.container():
+                st.code(st.session_state['ai_output'], language="text")
+                st.empty()
