@@ -9,12 +9,9 @@
 
 import torch
 import re
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, AutoModelForSeq2SeqLM
-from langchain import PromptTemplate, FewShotPromptTemplate 
+from transformers import pipeline
+from langchain import PromptTemplate
 from langchain.llms import HuggingFacePipeline
-from langchain.chains.question_answering import load_qa_chain
-from langchain.memory import ConversationSummaryBufferMemory
-from huggingface_hub import login
 
 class FewShotsGenerator:
   def __init__(self, modelName='meta-llama/Llama-2-7b-chat-hf'):
