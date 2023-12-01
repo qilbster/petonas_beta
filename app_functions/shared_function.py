@@ -2,7 +2,6 @@ import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 
 def page_format(col_layout=[2, 0.2, 1.2]):
-    st.set_page_config(layout="wide")
     # Remove the sidebar from streamlit
     st.markdown("""
         <style>
@@ -24,10 +23,9 @@ def get_default_value(key, default_value, prompt_engineering_techniques=None):
     else:
         return default_value
     
-def completed_input(inputs_to_save, alternative_page_mapping, col_name, button_name='Done'):
-    with col_name:
-        subcol1, subcol2, subcol3, subcol4, subcol5 = st.columns(5)
-        completed_prompt_selection = subcol5.button(button_name)
+def completed_input(inputs_to_save, alternative_page_mapping, key, button_name='Done'):
+    subcol1, subcol2, subcol3, subcol4, subcol5 = st.columns(5)
+    completed_prompt_selection = subcol5.button(button_name, key=key+'button')
     if completed_prompt_selection:
         # Check if all inputs are filled
         if not all(inputs_to_save.values()):
@@ -37,8 +35,7 @@ def completed_input(inputs_to_save, alternative_page_mapping, col_name, button_n
                 st.session_state[input] = inputs_to_save[input]
             if isinstance(alternative_page_mapping, str):
                 switch_page(alternative_page_mapping)
-            elif alternative_page_mapping is None: pass
-            else:
+            elif isinstance(alternative_page_mapping, dict):
                 for input_key in alternative_page_mapping.keys():
                     for input_type, page_name in alternative_page_mapping[input_key].items():
                         if st.session_state[input_key] == input_type:

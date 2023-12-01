@@ -1,6 +1,7 @@
 import streamlit as st
 from app_functions.shared_function import page_format, completed_input, get_default_value
 
+st.set_page_config(layout="wide")
 initial_inputs, space_col, selections = page_format()
 
 prompt_engineering_techniques = ("Shot prompting", "Content summarization with specific focus")
@@ -22,7 +23,8 @@ with selections:
 
 inputs_to_save = {"persona":persona, "prompt_context":prompt_context, "prompt_type":prompt_type, "initial_input":initial_input}
 alternative_page_mapping = {"prompt_type": {"Shot prompting":"shot_prompting","Content summarization with specific focus":"focused_summary"}}
-completed_input(inputs_to_save, alternative_page_mapping, selections)
+with selections:
+    completed_input(inputs_to_save, alternative_page_mapping, 'start')
 
 with initial_inputs:
     st.subheader("Selection")

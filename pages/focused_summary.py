@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 from app_functions.shared_function import page_format, completed_input, get_default_value
 
+st.set_page_config(layout="wide")
 # Layout the page as two columns
 initial_inputs, space_col, selections = page_format()
     
