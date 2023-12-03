@@ -22,6 +22,9 @@ def get_output(prompt_type):
     if prompt_type == "Shot prompting":
         job_id = 914650064561932
         input_params = {"input":st.session_state['shot_question'], "output":st.session_state['shot_reply'], "context":st.session_state['prompt_context'], "num_shots":st.session_state['num_shots']}
+    elif prompt_type == "Content summarization with specific focus":
+        job_id = 807625195369077
+        input_params = {"persona":st.session_state['persona'], "word_limit":st.session_state['summary_length'], "focus":st.session_state['summary_focus']}
     return call_api(job_id, input_params)
 
 def page_format(col_layout=[2, 0.4, 2]):
