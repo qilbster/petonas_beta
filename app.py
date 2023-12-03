@@ -2,7 +2,7 @@ import streamlit as st
 from app_functions.shared_function import page_format, completed_input, get_default_value
 
 st.set_page_config(layout="wide")
-initial_inputs, space_col, selections = page_format()
+initial_inputs, space_col, selections = page_format([2, 0.2, 1.2])
 
 prompt_engineering_techniques = ("Shot prompting", "Content summarization with specific focus")
 

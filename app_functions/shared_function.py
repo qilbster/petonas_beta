@@ -1,7 +1,30 @@
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
+from databricks_api import DatabricksAPI
+import time
 
-def page_format(col_layout=[2, 0.2, 1.2]):
+def call_api(job_id, input_params):
+    db = DatabricksAPI(
+    host = "https://dbc-eb788f31-6c73.cloud.databricks.com/",
+    token = "dapi52ff828b8575edb2585ede0beff0dcbb"
+    )
+    run_id = db.jobs.run_now(job_id=job_id, notebook_params=input_params).get('run_id')
+    run_status = db.jobs.get_run(run_id)['state']['life_cycle_state']
+    start_time = time.time()
+    while (time.time()-start_time < 300 and run_status != 'TERMINATED'):
+        time.sleep(10)
+        run_status = db.jobs.get_run(run_id)['state']['life_cycle_state']
+
+    if db.jobs.get_run(run_id)['state'].get('result_state') == 'SUCCESS':
+        return db.jobs.get_run_output(run_id)['notebook_output']['result']
+
+def get_output(prompt_type):
+    if prompt_type == "Shot prompting":
+        job_id = 914650064561932
+        input_params = {"input":st.session_state['shot_question'], "output":st.session_state['shot_reply'], "context":st.session_state['prompt_context'], "num_shots":st.session_state['num_shots']}
+    return call_api(job_id, input_params)
+
+def page_format(col_layout=[2, 0.4, 2]):
     # Remove the sidebar from streamlit
     st.markdown("""
         <style>
@@ -23,7 +46,7 @@ def get_default_value(key, default_value, prompt_engineering_techniques=None):
     else:
         return default_value
     
-def completed_input(inputs_to_save, alternative_page_mapping, key, button_name='Done'):
+def completed_input(inputs_to_save, alternative_page_mapping, key, button_name='Done', api_keys=None, get_output=get_output):
     subcol1, subcol2, subcol3, subcol4, subcol5 = st.columns(5)
     completed_prompt_selection = subcol5.button(button_name, key=key+'button')
     if completed_prompt_selection:
@@ -40,3 +63,6 @@ def completed_input(inputs_to_save, alternative_page_mapping, key, button_name='
                     for input_type, page_name in alternative_page_mapping[input_key].items():
                         if st.session_state[input_key] == input_type:
                             switch_page(page_name)
+            else:
+                with st.spinner("AI is still thinking..."):
+                    st.session_state['ai_output'] = get_output(st.session_state['prompt_type'])

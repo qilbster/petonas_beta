@@ -5,24 +5,29 @@ from app_functions.shared_function import page_format, completed_input, get_defa
 # Layout the page as two columns
 initial_inputs, space_col, selections = page_format()
 
-def shot_prompt_inputs(uniq):
+with initial_inputs:
+    if st.button("Back"): switch_page('app')
+    for _ in range(3):
+        st.text("")
     # Fine tune inputs based on prompt engineering techniques
-    num_shots = st.slider("Number of shots", 1, 5, get_default_value('num_shots', 1), key=uniq+'num')
-    shot_question = st.text_input("Example prompt:", get_default_value('shot_question', ''), key=uniq+'shot')
-    shot_reply = st.text_input("Example reply:", get_default_value('shot_reply', ''), key=uniq+'reply')
+    num_shots = st.slider("Number of shots", 1, 5, get_default_value('num_shots', 1))
+    shot_question = st.text_input("Example prompt:", get_default_value('shot_question', ''))
+    shot_reply = st.text_input("Example reply:", get_default_value('shot_reply', ''))
     # Format selected inputs to be displayed to users
     final_input = st.session_state['initial_input'] + f'\nNumber of shots: {num_shots}\nExample prompt: {shot_question}\nExample reply: {shot_reply}'
     inputs_to_save = {"num_shots":num_shots, "shot_question":shot_question, "shot_reply":shot_reply, 'final_input':final_input, "prompt_page":"shot_prompting"}
-    return final_input, inputs_to_save
+    completed_input(inputs_to_save, None, 'inital', 'Generate prompt')
 
 with selections:
-    for _ in range(3):
-        st.text("")
-    final_input, inputs_to_save = shot_prompt_inputs('initial')
-    completed_input(inputs_to_save, "prompt_refining", 'inital')
-
-with initial_inputs:
-    if st.button("Back"): switch_page('app')
     st.subheader("Selection")
-    st.code(final_input)
+    st.code(final_input, language='text')
 
+    if st.session_state.get('ai_output'):
+        output_area = st.empty()
+        output_area.text_area(value=st.session_state['ai_output'],label="ai_output",label_visibility='hidden', height=300)
+        col1, col2, col3 = st.columns(3)
+        prompt_done = col3.button("I'm happy with the prompt 🥳")
+        if prompt_done:
+            with output_area.container():
+                st.code(st.session_state['ai_output'], language="text")
+                st.empty()
