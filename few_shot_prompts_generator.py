@@ -53,12 +53,7 @@ class FewShotsGenerator:
     userExample = '0. {} -> {}\n'.format(self.exampleInput, self.exampleOutput)
     numberedShots.insert(0,userExample)
     numberedShots = "".join([item for item in numberedShots])
-    template = f"""
-    Based on the following examples:
-    {numberedShots}
-
-    Complete the relationship below:
-    replace_this_with_your_input ->
+    template = f"""Based on the following examples:\n{numberedShots}\nComplete the relationship below:\nreplace_this_with_your_input ->
     """
     return template
 
@@ -75,6 +70,16 @@ class FewShotsGenerator:
 # COMMAND ----------
 
 fewShotsGenerator = FewShotsGenerator()
+
+# COMMAND ----------
+
+input = dbutils.widgets.get("input")
+output = dbutils.widgets.get("output")
+context = dbutils.widgets.get("context")
+num_shots = dbutils.widgets.get("num_shots")
+
+promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
+dbutils.notebook.exit(promptTemplate)
 
 # COMMAND ----------
 
@@ -102,16 +107,6 @@ input = 'Monitor'
 output = 'Office'
 context = 'Furniture'
 num_shots = 3
-
-promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
-print(promptTemplate)
-
-# COMMAND ----------
-
-input = 'The delivery was fast'
-output = 'Positive'
-context = 'Sentiment'
-num_shots = 4
 
 promptTemplate = fewShotsGenerator.generate_few_shots(input,output,context,num_shots)
 print(promptTemplate)
