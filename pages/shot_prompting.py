@@ -24,10 +24,12 @@ with selections:
 
     if st.session_state.get('ai_output'):
         output_area = st.empty()
-        output_area.text_area(value=st.session_state['ai_output'],label="ai_output",label_visibility='hidden', height=300)
-        col1, col2, col3 = st.columns(3)
-        prompt_done = col3.button("I'm happy with the prompt 🥳")
+        with output_area.container():
+            final_output = st.text_area(value=st.session_state['ai_output'],label="ai_output",label_visibility='hidden', height=300)
+            col1, col2, col3 = st.columns(3)
+            prompt_done = col3.button("I'm happy with the prompt 🥳")
         if prompt_done:
             with output_area.container():
-                st.code(st.session_state['ai_output'], language="text")
+                st.code(final_output, language="text")
+                st.empty()
                 st.empty()
